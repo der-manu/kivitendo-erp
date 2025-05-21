@@ -2,15 +2,48 @@
 # Veränderungen von kivitendo #
 ###############################
 
-xxxx-xx-xx - Release 3.9.1
+202x-xx-xx - Release x.x.x
+
+Größere neue Features:
+
+Mittelgroße neue Features:
+
+Kleinere neue Features und Detailverbesserungen:
+
+- SSO (Single-Sign-On) Unterstützung über entsprechende HTTP-Header.
+  Für Details s.a. Doku und ggf. API-Doku im POD-Style
+
+Bugfixes (Tracker: https://www.kivitendo.de/redmine):
+
+
+
+2024-10-23 - Release 3.9.1
 
 Größere Features und Komponentenupdates:
   -
 
 Mittelgroße neue Features:
-  -
+  - Umwandeln mehrerer Aufträge in jeweils einen Lieferschein aus
+    dem Auftragsbericht.
+  - Neues Recht zum Anzeigen der Beträge in Auftragsberichten. Wer dieses
+    Recht nicht hat, sieht keine Beträge in den Berichten und die Links
+    zu nicht eigenen Aufträgen erscheinen nicht (nur die Auftragsnummer
+    als Text).
+    Als Standardeinstellung bekommen alle Gruppen mit Rechten, Aufträge
+    einzusehen bzw. zu bearbeiten, das Recht, Beträge im Bericht zu sehen.
+    Das Recht lässt sich getrennt nach Ein- und Verkauf einstellen.
+  - Neues Recht zum Ändern von Preisen in Artikelstammdaten.
+    Das Recht ist nach dem Update standardmäßig an, wenn man das Recht zum
+    Anlegen und Bearbeiten von Artikeln hat.
+    Fehlt einem dieses Recht, so lassen sich die Preise sehen, aber nicht
+    bearbeiten. Das betrifft Listen-, Einkaufs-, Verkaufs, Preisgruppen-,
+    Lieferanten- und Kundenpreise.
 
 Kleinere neue Features und Detailverbesserungen:
+  - Verkaufsreklamationen: Support für Drucken via odt-Vorlagen sowie eine
+    Beispiel odt-Vorlage hinzugefügt
+  - Neuer Backgroundjob zum Massen-generieren von Shop Artikeln aus Artikeln.
+    Dokumentation siehe POD in SL/BackgroundJob/ShopPartMassCreate.pm.
   - Möglichkeit nach internen Bemerkungen zu suchen und zu filtern im
     Bericht Einkaufsrechnungen/Kreditorenbuchungen.
   - Der Inhalt der Picker (Artikel/Kunde/Lieferant/Projekt/Konto) wird
@@ -25,10 +58,51 @@ Kleinere neue Features und Detailverbesserungen:
     das entsprechende Dokument anzeigen
   - Neues Feld Beschreibung bei den Backgroundjob. Dient zur besseren
     Unterscheidung.
-
+  - Dialogbuchungen als "als neu verwenden" können.
+  - eigene Zugriffsrechte für die Verkaufs-Berichte "Auftragsartikelsuche",
+    "Finanz-Controlling" und "Verkaufsbericht".
+  - Ob einige Belege in den Menüs bzw. Workflows verfügbar sind, lässt sich nun
+    in der Mandantenkonfigurtion einstellen. Das gilt zur Zeit für
+    Auftragseingang, Angebotseingang und Lieferantenauftragsbestätigung,
+    sowie für Anzahlungs- bzw. Schluss-Rechnung.
+  - Möglichkeit einer Datenbank-Verklemmung bei CSV-Importen verringert.
+  - Die SEPA END-TO-END wird extrahiert und kann zur Duplikatserkennung beim
+    Bank-Import verwendet werden. Die Einstellung ist erstmal abgeschaltet und
+    der kivi Admin kann selber entscheiden ab wann genügend END-TO-END IDs im
+    Datenbestand vorhanden sind. Die Einstellung befindet sich in der
+    Mandantenkonfiguration unter Buchungseinstellungen.
+  - Neues Recht, um benutzedefinierte Berichte überhaupt nutzen zu können. Wenn
+    dieses Recht nicht gesetzt ist, taucht auch der Menüpunkt für die
+    benutzerdefinierten Berichte nicht auf und die Oberfläche ist etwas
+    übersichtlicher.
+  - Neues Recht, um Kunden-/Lieferanten-Liste (Stammdaten) aufrufen zu können.
+    Diese Recht beschränkt im Moment nur den Menüpunkt und den Bericht
+    unter Stammdaten, nicht aber den generellen Zugriff auf die Kunden- bzw.
+    Lieferanten-Maske.
+  - Neues Recht, um Liste der Ansprechpersonen (Stammdaten) aufrufen zu können.
+  - Die Dateiendung für den SEPA-Export wurde auf .xml geändert, konfigurierbar auf
+    den vorherigen Wert (.cct oder .cdd) über die Mandantenkonfiguration
+  - Kontoauszug verbuchen, der Reiter "Alle Buchungen" kann per Konfiguration immer
+    als erstes angezeigt werden (Vorschläge werden generiert, aber nicht direkt geöffnet)
+  - Neuer Hintergrund-Job der IBAN und BIC in den Stammdaten setzt, insofern diese
+    sich über verbuchte Bank-Transaktion ableiten lassen, s.a.
+    perldoc SL/BackgroundJob/SetBankAccountsMasterData.pm
 
 Bugfixes (Tracker: https://www.kivitendo.de/redmine):
-  -
+718 Shopconnector shopware6: Check API Zeigt Fehlermeldung nicht an
+708 Design40 Feld salesman/Verkäufer beim Kunden fehlt
+705 design40: Sortieren (reorder) von Listen im SimpleSystemSettings-Controller kaputt
+704 Lieferschein email an "Email Lieferadresse" defekt
+700 Email Lieferschein ohne Anhang
+697 Lieferschein: Formular-Details /zweite Zeile) lässt sich nicht ausklappen nach Workflow aus Auftrag
+696 Workflow Auftrag -> Lieferschein: Positionsdetails gehen verloren
+694 neuer Lieferschein-Controller: Speichern und Schließen defekt
+688 Design4.0: Toggle Wrapper in Belegen, beim Aufklappen werden ein teil der Felder nicht mehr angezeigt
+680 Design 4.0: "neue" Controller: Update-Symbol falsch nach Anzeigen/Verstecken der 2. Zeile (Details)
+678 Link vom Lagerbewegungsbericht zum Lieferschein
+679 Lieferschein "als neu speichern" liefert Fehler
+671 Admin Bereich: Beim Anlegen einer Datenbank mit schweizer Kontenrahmen kommt eine Ansicht ohne CSS
+647 Kunde editieren: Belege: XML Parsing Error: not well-formed
 
 
 2024-04-10 - Release 3.9.0

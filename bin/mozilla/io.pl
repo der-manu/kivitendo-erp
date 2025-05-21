@@ -1058,8 +1058,8 @@ sub order {
 
     require SL::Controller::Order;
     my $c = SL::Controller::Order->new(order => $order);
-    $c->setup_custom_shipto_from_form($order, $::form);
-    $c->action_edit();
+    $c->reinit_after_new_order();
+    $c->action_add();
 
     $main::lxdebug->leave_sub();
     $::dispatcher->end_request;
@@ -2391,7 +2391,7 @@ sub download_factur_x_xml {
     $::form->error($e->message);
   }
 
-  my $attachment_filename = $::form->generate_attachment_filename;
+  my $attachment_filename = "factur-x_" . $::form->generate_attachment_filename;
   $attachment_filename    =~ s{\.[^.]+$}{.xml};
   my %headers             = (
     '-type'           => 'application/xml',
