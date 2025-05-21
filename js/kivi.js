@@ -747,3 +747,29 @@ namespace("kivi", function(ns) {
 });
 
 kivi = namespace('kivi');
+//Diese Funktion sorgt dafür das Brauser warnen, wenn in einem Formularfeld ungespeicherte änderungen sind. 
+//Der returntext wird von aktuellen Browsern durch eine default-Meldung erstetzt, aber so werden bei uns  
+//ungespeicherte änderungen vermieden.
+$(function () {
+  let formChanged = false;
+
+  // Nur auf Formularseiten aktivieren
+  if ($('form').length > 0) {
+    // Änderungen an Formularfeldern registrieren
+    $('form :input').on('change input', function () {
+      formChanged = true;
+    });
+
+    // Warnung beim Verlassen der Seite, wenn Änderungen vorhanden sind
+    window.onbeforeunload = function () {
+      if (formChanged) {
+        return "Du hast Änderungen vorgenommen, die noch nicht gespeichert wurden. Änderungen gehen verloren, wenn du die Seite jetzt verlässt.";
+      }
+    };
+
+    // Wenn Formular gespeichert wird, Flag zurücksetzen
+    $('form').on('submit', function () {
+      formChanged = false;
+    });
+  }
+});
