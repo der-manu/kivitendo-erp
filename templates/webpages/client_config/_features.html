@@ -347,6 +347,11 @@
       </div>
     </td>
   </tr>
+  <tr>
+   <td align="right">[% LxERP.t8("Item input position for quotations and orders") %]</td>
+   <td>[% L.select_tag("defaults.order_item_input_position", [ [ 0, LxERP.t8('above the positions'), ], [ 1, LxERP.t8('below the positions') ] ], default=SELF.defaults.order_item_input_position) %]</td>
+   <td>[% LxERP.t8("Controls whether the default item input is above (default) or below the positions list in orders and quotations. Can be overridden by user preferences.") %]</td>
+  </tr>
 
   <tr><td class="listheading" colspan="4">[% 'Show certain sales and purchase documents' | $T8 %]</td></tr>
   <tr>
@@ -484,6 +489,11 @@
    </td>
    <td>[% 'Generic email send address for this record type.' | $T8 %]</td>
   </tr>
+  <tr>
+    <th>[% LxERP.t8('Email Subject Transaction Description') %]</th>
+    <td> [% L.yes_no_tag('defaults.email_subject_transaction_description', SELF.defaults.email_subject_transaction_description) %] </td>
+    <td class="long-desc"> [% LxERP.t8('Include the transaction description in the preset email subject.') %] </td>
+  </tr>
   <tr><td class="listheading" colspan="4">[% LxERP.t8("Requirement Specs") %]</td></tr>
   <tr>
    <td align="right">[% LxERP.t8('Default article for converting into quotations and orders') %]</td>
@@ -561,14 +571,6 @@
    <td>[% L.input_tag('defaults.sepa_set_skonto_date_buffer_in_days_as_number', SELF.defaults.sepa_set_skonto_date_buffer_in_days_as_number, style=style) %]</td>
   </tr>
   <tr><td class="listheading" colspan="4">[% LxERP.t8("Experimental Features") %]</td></tr>
-  <tr>
-   <td align="right">[% LxERP.t8('new order controller') %]</td>
-   <td>[% L.yes_no_tag('defaults.feature_experimental_order', SELF.defaults.feature_experimental_order) %]</td>
-  </tr>
-  <tr>
-   <td align="right">[% LxERP.t8('Assortment') %]</td>
-   <td>[% L.yes_no_tag('defaults.feature_experimental_assortment', SELF.defaults.feature_experimental_assortment) %]</td>
-  </tr>
  <tr><td class="listheading" colspan="4">[% 'Displayable Name Preferences' | $T8 %]</td></tr>
  [% FOREACH module=SELF.displayable_name_specs_by_module.keys.sort %]
  [%- SET spec=SELF.displayable_name_specs_by_module.$module -%]

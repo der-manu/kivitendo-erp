@@ -293,9 +293,11 @@
     </tr>
   </table>
 
+  [%- IF order_item_input_position == 0 -%]
   [%- PROCESS order/tabs/_item_input.html SELF=SELF %]
 
   [% L.button_tag('kivi.Order.open_multi_items_dialog()', LxERP.t8('Add multiple items')) %]
+  [%- END -%]
 
   <table width="100%">
     <tr>
@@ -351,13 +353,23 @@
               [%- PROCESS order/tabs/_row.html ITEM=item ID=(item.id||item.new_fake_id)  -%]
             [%- END %]
 
-          </table>
-        </div>
+            <tbody id="row_table_footer" class="listrow">
+            [% IF order_item_input_position == 1 %]
+              [%- PROCESS order/tabs/_item_below_input.html SELF=SELF %]
+            [%- END -%]
+            </tbody>
 
+          </table>
+          [% IF order_item_input_position == 1 %]
+            [% L.button_tag('kivi.Order.open_multi_items_dialog()', LxERP.t8('Add multiple items')) %]
+          [%- END -%]
+        </div>
       </td>
     </tr>
 
     <tr>
+      <td>
+      </td>
     </tr>
 
     <tr>

@@ -173,7 +173,6 @@
         [% L.input_tag('longdescription_dialog_size_percentage', longdescription_dialog_size_percentage, size = 5) %]
       </td>
      </tr>
-     [%- IF INSTANCE_CONF.get_feature_experimental_order -%]
      <tr>
       <th align="right">[% 'Scrollbar height percentage for form postion area (0 means no scrollbar)' | $T8 %]</th>
       <td>
@@ -200,7 +199,6 @@
         [% L.yes_no_tag('positions_show_update_button', positions_show_update_button) %]
       </td>
      </tr>
-     [%- END -%]
 
      <tr>
       <th align="right">[% 'Show custom variable search inputs' | $T8 %]</th>
@@ -274,6 +272,13 @@
        <th align="right">[% 'Part picker search dialog (magnifying glass): "all as list" defaults to on' | $T8 %]</th>
        <td>
         [% L.yes_no_tag('part_picker_search_all_as_list_default', part_picker_search_all_as_list_default) %]
+      </td>
+    </tr>
+
+     <tr>
+       <th align="right">[% 'Item input position for quotations and orders' | $T8 %]</th>
+       <td>
+        [% L.select_tag('order_item_input_position', [ [ 'default', LxERP.t8('Use settings from client configuration') ], [ 0, LxERP.t8('above the positions') ], [ 1, LxERP.t8('below the positions') ] ], default=order_item_input_position) %]
       </td>
     </tr>
 
