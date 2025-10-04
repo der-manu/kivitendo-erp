@@ -28,9 +28,12 @@ my %sort_columns = (
   qty               => t8('Qty'),
   shipped_qty       => t8('shipped'),
   not_shipped_qty   => t8('not shipped'),
+  status            => t8('Status'),
   ordnumber         => t8('Order'),
   customer          => t8('Customer'),
   vendor            => t8('Vendor'),
+  microfiche        => t8('Microfiche'),
+  transaction_description => t8('Transaction description'),
 );
 
 
@@ -55,15 +58,17 @@ sub prepare_report {
   $report->{title} = t8('Delivery Plan');
   $self->{report}  = $report;
 
-  my @columns     = qw(reqdate customer vendor ordnumber partnumber description qty shipped_qty not_shipped_qty);
+  my @columns     = qw(reqdate customer vendor ordnumber status transaction_description partnumber description microfiche qty shipped_qty not_shipped_qty);
 
-  my @sortable    = qw(reqdate customer vendor ordnumber partnumber description);
+  my @sortable    = qw(reqdate customer vendor ordnumber transaction_description partnumber description);
 
   my %column_defs = (
     reqdate           => {      sub => sub { $_[0]->reqdate_as_date || $_[0]->order->reqdate_as_date                         } },
     description       => {      sub => sub { $_[0]->description                                                              },
                            obj_link => sub { $self->link_to($_[0]->part)                                                     } },
     partnumber        => {      sub => sub { $_[0]->part->partnumber                                                         },
+                           obj_link => sub { $self->link_to($_[0]->part)                                                     } },
+    microfiche        => {      sub => sub { $_[0]->part->microfiche                                                         },
                            obj_link => sub { $self->link_to($_[0]->part)                                                     } },
     qty               => {      sub => sub { $_[0]->qty_as_number . ' ' . $_[0]->unit                                        } },
     shipped_qty       => {      sub => sub { $::form->format_amount(\%::myconfig, $_[0]{shipped_qty}, 2) . ' ' . $_[0]->unit } },
@@ -76,6 +81,8 @@ sub prepare_report {
     customer          => {      sub => sub { $_[0]->order->customer->name                                                    },
                             visible => $vc eq 'customer',
                            obj_link => sub { $self->link_to($_[0]->order->customer)                                          } },
+    status            => {      sub => sub { ref $_[0]->order->order_status ? $_[0]->order->order_status->name : ''          } },
+    transaction_description => { sub => sub { $_[0]->order->transaction_description                                          } },
   );
 
   $column_defs{$_}->{text} = $sort_columns{$_} for keys %column_defs;
@@ -130,6 +137,7 @@ sub make_filter_summary {
 
   my @filters = (
     [ $filter->{order}{"ordnumber:substr::ilike"},                    $::locale->text('Number')                                             ],
+    [ $filter->{order}{"transaction_description:substr::ilike"},      $::locale->text('Transaction description')                            ],
     [ $filter->{order}{globalproject}{"projectnumber:substr::ilike"}, $::locale->text('Document Project Number')                            ],
     [ $filter->{part}{"partnumber:substr::ilike"},                    $::locale->text('Part Number')                                        ],
     [ $filter->{"description:substr::ilike"},                         $::locale->text('Part Description')                                   ],

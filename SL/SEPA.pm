@@ -2,6 +2,7 @@ package SL::SEPA;
 
 use strict;
 
+use IPC::Run qw();
 use POSIX qw(strftime);
 
 use Data::Dumper;
@@ -9,6 +10,7 @@ use SL::DBUtils;
 use SL::DB::Invoice;
 use SL::DB::PurchaseInvoice;
 use SL::DB;
+use SL::Helper::ISO4217;
 use SL::Locale::String qw(t8);
 use DateTime;
 use Carp;
@@ -36,6 +38,7 @@ sub retrieve_open_invoices {
   my $query =
     qq|
        SELECT ${arap}.id, ${arap}.invnumber, ${arap}.transdate, ${arap}.${vc}_id as vc_id, ${arap}.amount AS invoice_amount, ${arap}.invoice,
+         ${arap}.currency_id,
          (${arap}.transdate + pt.terms_skonto) as skonto_date, (pt.percent_skonto * 100) as percent_skonto,
          (${arap}.amount - (${arap}.amount * pt.percent_skonto)) as amount_less_skonto,
          (${arap}.amount * pt.percent_skonto) as skonto_amount,
@@ -79,6 +82,10 @@ sub retrieve_open_invoices {
     push @options, { payment_type => 'without_skonto',  display => t8('without skonto') };
     push @options, { payment_type => 'with_skonto_pt',  display => t8('with skonto acc. to pt'), selected => 1 } if $result->{within_skonto_period};
     $result->{payment_select_options}  = \@options;
+
+    # add the original record's currency
+    $result->{currency}         = SL::DB::Currency->load_cached($result->{currency_id})->name;
+    $result->{currency_not_eur} = 'EUR' ne SL::Helper::ISO4217::map_currency_name_to_code($result->{currency});
   }
 
   $main::lxdebug->leave_sub();
@@ -538,6 +545,48 @@ sub _post_payment {
   return 1;
 }
 
+sub send_concatinated_sepa_pdfs {
+  $main::lxdebug->enter_sub();
+
+  my ($items, $download_filename) = @_;
+
+  my @files;
+  foreach my $item (@{$items}) {
+
+    # check if there is already a file for the invoice
+    # File::get_all and converting to scalar is a tiny bit stupid, see Form.pm,
+    # but there is no get_latest_version (but sorts objects by itime!)
+    # check if already resynced
+    my ( $file_object ) = SL::File->get_all(object_id   => $item->{ap_id} ? $item->{ap_id} : $item->{ar_id},
+                                            object_type => $item->{ap_id} ? 'purchase_invoice' : 'invoice',
+                                            file_type   => 'document',
+                                           );
+    next if     (ref $file_object ne 'SL::File::Object');
+    next unless $file_object->mime_type eq 'application/pdf';
+
+    my $file = $file_object->get_file;
+    die "No file" unless -e $file;
+    push @files, $file;
+  }
+
+  my @cmd = (
+    $::lx_office_conf{applications}->{ghostscript},
+    qw(-dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=-),
+    @files
+  );
+  my ($out, $err);
+  IPC::Run::run \@cmd, \undef, \$out, \$err;
+
+  $::form->error($main::locale->text('Could not spawn ghostscript.') . ' ' . $err) if $err;
+
+  print $::form->create_http_response(content_type        => 'Application/PDF',
+                                      content_disposition => 'attachment; filename="'. $download_filename . '"');
+
+  $::locale->with_raw_io(\*STDOUT, sub { print $out });
+
+  $main::lxdebug->leave_sub();
+}
+
 1;
 
 
@@ -583,5 +632,11 @@ Needs a valid sepa_export id and deletes the sepa export if
 the state of the export is neither executed nor closed.
 Returns undef if the deletion was successfully.
 Otherwise the function just dies with a short notice of the id.
+
+=head2 C<send_concatinated_sepa_pdfs> \@items $download_filename
+
+This function is called from bin/mozialla/sepa.pl. It retrieves PDFs
+documents for all elements of @items, concatinates them and sends the
+resulting PDF back to the client.
 
 =cut

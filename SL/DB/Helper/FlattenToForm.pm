@@ -39,7 +39,8 @@ sub flatten_to_form {
 
   my @vc_fields          = (qw(account_number bank bank_code bic business city contact country creditlimit
                                department_1 department_2 discount email fax gln greeting homepage iban language name
-                               natural_person phone street taxnumber ustid zipcode),
+                               natural_person phone street taxnumber ustid zipcode
+                               mandator_id mandate_date_of_signature),
                             "${vc}number",
                             ($vc eq 'customer')? qw(c_vendor_id c_vendor_routing_id): 'v_customer_id');
   my @vc_prefixed_fields = qw(email fax notes number phone);
@@ -98,7 +99,8 @@ sub flatten_to_form {
     # TODO: is part_type correct here? Do we need to set part_type as default?
     _copy($item->part,    $form, '',               "_${idx}", 0,               qw(id partnumber weight part_type));
     _copy($item->part,    $form, '',               "_${idx}", 0,               qw(listprice));
-    _copy($item,          $form, '',               "_${idx}", 0,               qw(description project_id ship serialnumber pricegroup_id ordnumber donumber cusordnumber unit
+    _copy($item,          $form, '',               "_${idx}", 0,               qw(position
+                                                                                  description project_id ship serialnumber pricegroup_id ordnumber donumber cusordnumber unit
                                                                                   subtotal longdescription price_factor_id marge_price_factor reqdate transdate
                                                                                   active_price_source active_discount_source optional));
     _copy($item,          $form, '',              "_${idx}", $format_noround, qw(qty sellprice fxsellprice));

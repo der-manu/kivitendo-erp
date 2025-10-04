@@ -10,10 +10,17 @@
 
 <div id="print_options" style="display:none">
   <form method="post" action="controller.pl" id="print_options_form">
-    [% SELF.print_options %]
+    <div>
+      [% SELF.print_options %]
+    </div>
+    <div id="print_show_items">
+      [% L.button_tag("kivi.DeliveryOrder.print_dialog_show_item_selection()", LxERP.t8("Show item selection"), class='neutral') %]
+    </div>
+    <div id="print_item_selection" style="display:none">
+    </div>
     <br>
     [% L.button_tag('kivi.DeliveryOrder.print()', LxERP.t8('Print')) %]
-    <a href="#" onclick="$('#print_options').dialog('close');">[% LxERP.t8("Cancel") %]</a>
+    [% L.button_tag("\$('#print_options').dialog('close')", LxERP.t8('Cancel'), class='neutral') %]
   </form>
 </div>
 
@@ -34,8 +41,6 @@
   [% IF !SELF.order.id %]
   [%   L.hidden_tag('form_validity_token', FORM.form_validity_token) %]
   [% END %]
-
-  [%- INCLUDE 'common/flash.html' %]
 
   <div class="tabwidget" id="order_tabs">
     <ul>

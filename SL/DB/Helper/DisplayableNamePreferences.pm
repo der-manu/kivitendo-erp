@@ -6,7 +6,7 @@ use parent qw(Exporter);
 our @EXPORT = qw(displayable_name displayable_name_prefs displayable_name_specs specify_displayable_name_prefs);
 
 use Carp;
-use List::MoreUtils qw(none);
+use List::Util qw(first);
 
 use SL::Helper::UserPreferences::DisplayableName;
 
@@ -35,8 +35,11 @@ sub displayable_name {
   my @names = $prefs->get =~ m{<\%(.+?)\%>}g;
   my $display_string = $prefs->get;
   foreach my $name (@names) {
-    next if none {$name eq $_->{name}} @{$specs->{options}};
-    my $val         = $self->can($name) ? $self->$name // '' : '';
+    my $opt = first { $name eq $_->{name} } @{$specs->{options}};
+    next unless $opt;
+    my $val         = $opt->{sub}       ? $opt->{sub}($self)
+                    : $self->can($name) ? $self->$name // ''
+                    : '';
     $display_string =~ s{<\%$name\%>}{$val}g;
   }
 
@@ -112,10 +115,13 @@ The (translated) title of the object.
 
 =item C<options>
 
-The C<options> are an array ref of hash refs with the keys C<name> and C<title>.
-The C<name> is the method called to get the needed information from the object
-for which the displayable name is configured. The C<title> can be used to
-display a (translated) text in a controller setting the preferences.
+The C<options> are an array ref of hash refs with the keys C<name>,
+C<title> and optionally, C<sub>. The C<name> is the method called to get
+the needed information from the object for which the displayable name is
+configured, unless C<sub> is defined.  The C<sub> is a function reference
+that is called to get the information from the object. This is helpful
+if the object has no suitable getter function. The C<title> can be used
+to display a (translated) text in a controller setting the preferences.
 
 =back
 

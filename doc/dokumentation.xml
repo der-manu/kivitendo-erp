@@ -95,6 +95,18 @@
 
     <sect1 id="Benötigte-Software-und-Pakete">
       <title>Benötigte Software und Pakete</title>
+      <sect2 id="minimale_version">
+      <title>Mindest-Voraussetzung</title>
+      <para>kivitendo benötigt einen Webserver der Perl unterstüzt und PostgreSQL als Datenbank in einer entsprechenden Minimalversion.</para>
+        <itemizedlist>
+          <listitem>
+              <para>PostgreSQL Version 14</para>
+          </listitem>
+          <listitem>
+              <para>Perl Version 5.34</para>
+          </listitem>
+        </itemizedlist>
+      </sect2>
 
       <sect2 id="Betriebssystem">
         <title>Betriebssystem</title>
@@ -106,7 +118,7 @@
         ohne große Probleme auf den derzeit aktuellen verbreiteten
         Distributionen läuft.</para>
 
-        <para>Mitte 2024 (ab Version 3.9) empfehlen wir:</para>
+        <para>Mitte 2025 (ab Version 3.9.2) empfehlen wir:</para>
 
         <itemizedlist>
           <listitem>
@@ -114,10 +126,10 @@
 
             <itemizedlist>
               <listitem>
-                <para>11.0 "Bullseye"</para>
+                <para>12.0 "Bookworm"</para>
               </listitem>
               <listitem>
-                <para>12.0 "Bookworm"</para>
+                <para>13.0 "Trixie"</para>
               </listitem>
             </itemizedlist>
           </listitem>
@@ -126,20 +138,20 @@
             <para>Ubuntu</para>
             <itemizedlist>
              <listitem>
-              <para>20.04 "Focal Fossa" LTS</para>
+              <para>22.04 "Jammy Jellyfish" LTS</para>
              </listitem>
              <listitem>
-              <para>22.04 "Jammy Jellyfish" LTS</para>
+              <para>24.04 "Noble Numbat" LTS</para>
              </listitem>
             </itemizedlist>
           </listitem>
 
           <listitem>
-            <para>openSUSE Leap 15.5 und SUSE Linux Enterprise Server 15 SP4</para>
+            <para>openSUSE Leap 15.6 und SUSE Linux Enterprise Server 15 SP6</para>
           </listitem>
 
           <listitem>
-            <para>Fedora 39</para>
+            <para>Fedora 39 - 41</para>
           </listitem>
         </itemizedlist>
       </sect2>
@@ -1005,36 +1017,6 @@ default_manager = german</programlisting>
               <para><ulink url="https://de.opensuse.org/PostgreSQL">OpenSuSE (aktuell nur bis Version OpenSuSE 13 verifiziert)</ulink></para>
             </listitem>
           </itemizedlist>
-      <sect2 id="Zeichensätze-die-Verwendung-von-UTF-8">
-        <title>Zeichensätze/die Verwendung von Unicode/UTF-8</title>
-
-        <para>kivitendo setzt zwingend voraus, dass die Datenbank
-        Unicode/UTF-8 als Encoding einsetzt. Bei aktuellen
-        Serverinstallationen braucht man hier meist nicht einzugreifen.</para>
-
-        <para>Das Encoding des Datenbankservers kann überprüft werden. Ist das
-        Encoding der Datenbank "template1" "Unicode" bzw. "UTF-8", so braucht
-        man nichts weiteres diesbezüglich unternehmen. Zum Testen:</para>
-
-        <programlisting>su postgres
-echo '\l' | psql
-exit </programlisting>
-
-        <para>Andernfalls ist es notwendig, einen neuen Datenbankcluster mit
-        Unicode-Encoding anzulegen und diesen zu verwenden. Unter Debian und
-        Ubuntu kann dies z.B. für PostgreSQL 9.3 mit dem folgenden Befehl
-        getan werden:</para>
-
-        <programlisting>pg_createcluster --locale=de_DE.UTF-8 --encoding=UTF-8 9.3 clustername</programlisting>
-
-        <para>Die Datenbankversionsnummer muss an die tatsächlich verwendete
-        Versionsnummer angepasst werden.</para>
-
-        <para>Unter anderen Distributionen gibt es ähnliche Methoden.</para>
-
-        <para>Das Encoding einer Datenbank kann in <command>psql</command> mit
-        <literal>\l</literal> geprüft werden.</para>
-      </sect2>
 
       <sect2 id="Änderungen-an-Konfigurationsdateien">
         <title>Änderungen an Konfigurationsdateien</title>
@@ -1192,6 +1174,7 @@ a2ensite default-ssl</programlisting>
         <programlisting>AliasMatch ^/url/for/kivitendo-erp/[^/]+\.pl /path/to/kivitendo-erp/dispatcher.fcgi
 Alias       /url/for/kivitendo-erp/          /path/to/kivitendo-erp/
 FcgidMaxRequestLen 10485760
+FcgidIOTimeout 300
 
 &lt;Directory /path/to/kivitendo-erp&gt;
   AllowOverride All
@@ -1213,8 +1196,11 @@ FcgidMaxRequestLen 10485760
         Grenze hochgesetzt:</para>
 
         <programlisting>FcgidMaxRequestLen 10485760</programlisting>
+        <para>Standardmäßig wartet der Apache 40 Sekunden bevor es bei einer Anfrage zu einem Timeout und somit
+        einenm 'Internal Server Error' kommt. Das ist für einige Berichte/Datenmenge etwas knapp und der Eintrag:
+        <programlisting>FcgidIOTimeout 300</programlisting> setzt dieses Timeout auf 5 Minuten. Weitere Parameter sind in der
+        <ulink url="https://httpd.apache.org/mod_fcgid/mod/mod_fcgid.html">Apache Dokumentation</ulink> einsehbar.</para>
       </sect2>
-
       <sect2>
        <title>Aktivierung von mod_rewrite/directory_match für git basierte Installationen</title>
 
@@ -1558,7 +1544,8 @@ monthly_strftime: '%Y-%m-%d'
         </sect2>
         <sect2 id="Hintergrund-Job ImportRecordEmails">
   <title>ImportRecordEmails</title>
-<para> Der Hintergrund-Job <literal>ImportRecordEmails</literal> kann vollständig über das Feld Daten konfiguriert werden. Er benötigt folgende Variablen:</para>
+<para>Die prinzipielle Idee des Hintergrund-Jobs <literal>ImportRecordEmails</literal> ist es auf einen spezifischen IMAP-Ordner zuzugreifen und unterhalb diesen Ordners alle E-Mails in kivitendo zu importieren. Der Job ist transaktionssicher, d.h. entweder können alle E-Mails zum Zeitpunkt des Jobs importiert werden oder es wird überhaupt keine importiert.</para><para>Die eindeutige Kennzeichnung um Duplikate beim Import zu vermeiden ist die UID der E-Mail auf dem IMAP-Server, dies ist solange stabil, solange der Provider nicht gewechselt wird, bzw. die E-Mails nicht auf einen anderen IMAP-Server migrieren.</para><para>Zu guter Letzt kann der Job auch noch automatisch Verarbeitungen mit dem Anhängen der E-Mail direkt beim Import durchführen, bspw. ZUGFeRD konforme PDFs automatisch verbuchen.</para>
+ <para>Die prinzipiellen IMAP-Zugangsdaten können vollständig über das Feld Daten konfiguriert werden und sind wie folgt definiert:</para>
   <itemizedlist>
           <listitem>
             <para><literal>hostname:</literal> Hier wird der E-Mail-Server (IMAP) eingetragen</para>
@@ -1567,7 +1554,10 @@ monthly_strftime: '%Y-%m-%d'
             <para><literal>username:</literal> Benutzername, für den IMAP-Server (häufig die E-Mail-Adresse)</para>
           </listitem>
           <listitem>
-            <para><literal>password:</literal> Passwort des Benutzers</para>
+            <para><literal>password_secret:</literal> Passwort des Benutzers als kivitendo Secrets (Siehe System -&gt; Secrets)</para>
+          </listitem>
+          <listitem>
+            <para><literal>password:</literal> Passwort des Benutzers (deprecated, password_secret sollte benutzt werden)</para>
           </listitem>
           <listitem>
             <para><literal>folder:</literal> Hier wird der Ordner eingetragen, aus dem die E-Mails importert werden sollen, bspw. 'INBOX'</para>
@@ -1577,11 +1567,9 @@ monthly_strftime: '%Y-%m-%d'
           </listitem>
           <listitem>
             <para><literal>ssl:</literal> Gibt an ob SSL verwendet werden soll. Default: 1</para>
-          </listitem>
-        </itemizedlist>
-
-    <para> Optional können außerdem folgende Variablen verwendet werden:</para>
-
+	    </listitem>
+  </itemizedlist>
+    <para>Um das ganze Verfahren komfortabler zu optimieren oder Fehlimporte wieder zu löschen stehen folgende optionale Parameter zu Verfügung:</para>
     <itemizedlist>
           <listitem>
             <para><literal>email_import_ids_to_delete:</literal> Hier können IDs von Importen eingetragen werden, deren E-Mails aus dem E-Mail-Journal gelöscht werden sollen.</para>
@@ -1590,13 +1578,22 @@ monthly_strftime: '%Y-%m-%d'
             <para><literal>process_imported_emails:</literal> Wenn nach dem Import noch weitere Verarbeitung der angehangenen Dokumente erfolgen soll, müssen hier die jeweiligen Schritte eingetragen werden. Aktuell ist es möglich, dass angehangene ZUGFeRD-Rechnung direkt verbucht und mit der E-Mail verknüpft werden. Dazu muss hier 'zugferd' eingetragen werden.</para>
           </listitem>
           <listitem>
-            <para><literal>processed_imap_flag:</literal> Das hier eingetragenen Flag wird nach dem Verarbeiten in der E-Mail auf den IMAP-Server gesetzt.</para>
+            <para><literal>imported_imap_flag:</literal> Das hier eingetragenen Flag wird nach dem Verarbeiten in der E-Mail auf den IMAP-Server gesetzt.</para>
           </listitem>
           <listitem>
-            <para><literal>not_processed_imap_flag:</literal> Dieses Flag wird gesetzt, wenn die E-Mail nicht verarbeitet werden konnte.</para>
+            <para><literal>not_imported_imap_flag:</literal> Das hier eingetragenen Flag wird bei erfolglosen Importieren auf dem IMAP-Server gesetzt und ist hilfreich um die Fehlerfälle bei großem Datenimporten schneller einzugrenzen.</para>
+          </listitem>
+          <listitem>
+            <para><literal>processed_imap_flag:</literal> Das hier eingetragenen Flag wird nach dem erfolgreichen Verarbeiten an der E-Mail gesetzt.</para>
+          </listitem>
+          <listitem>
+            <para><literal>not_processed_imap_flag:</literal> Dieses Flag wird gesetzt, falls die E-Mail nicht erfolgreich verarbeitet werden konnte (Verarbeitungsprozeß ist in <literal>process_imported_emails</literal> definiert.</para>
           </listitem>
           <listitem>
             <para><literal>record_type:</literal> Einträge im E-Mail-Journal können direkt einem Belegtypen zugeordnet werden. Wenn alle E-Mails, die mit einem Hintergrundjob importiert werden, den gleichen Belegtypen haben, kann man diesen hier festlegen und alle Einträge im E-Mail-Journal werden entsprechend zugeordnet. Für Eingangsrechnungen kann man hier bspw. 'ap_transaction' setzen.</para>
+	    </listitem>
+	    <listitem>
+            <para><literal>skip_broken_mime_mails:</literal> Bricht den Import-Lauf NICHT ab, falls einige Mails nicht MIME-konform "zerlegt" werden können. Default: 0</para>
           </listitem>
         </itemizedlist>
 
@@ -1606,18 +1603,50 @@ monthly_strftime: '%Y-%m-%d'
 <para>Thunderbird 115.8.0:  Sie werden durchnummeriert mit dem Prefix "$label". Über die Einstellungen kann man Schlagwort und Farbe für den jeweiligen Tag setzen und berabeiten. Um die vordefenierten Tags in Thunderbird zu nutzen kann man $label1 - $label5 nutzen. Eigene Labels werden dann von thunderbird automatisch hochgezählt. Um das korrekte Tag für ein Label zu finden oder auch selbst ein Tag mit einer selbst gewählten Zahl zu definieren kann man in den Einstellunge ganz am Ende über den Button <literal>Konfiguration berabeiten...</literal> die Werte in der Kofiguration einsehen, ändern und berabeiten. Hier muss man nach <literal>mailnews.tags</literal> suchen.</para>
 <para>Thunderbird 115.8.1: Einstellungen -> Schlagwörter -> hinzufügen. Das Schlagwort wird mit dem 'Label' 'name_mit_unterstrichen' zu Verfügung gestellt. Was wirklich passiert kann man dann ganz unten in den Einstellungen unter 'Konfiguration bearbeiten' und einer darauf folgenden Filtersuche nach 'mailnews.tag' erkennen.</para>
           <para>In SoGo kann man unter Einstellungen -> Mail -> Labels beliebige Label mit $ als Prefix anlegen und Namen und Farbe zuweisen.</para>
-          <para>Eine beispielhafte Konfiguration im YAML-Format für das Feld 'Daten' im Hintergrund-Job könnte bspw. so aussehen:
+  <note>Hilfreich ist dieses Skript was die Flags beispielhaft für einen IMAP-Ordner 'Eingangsrechung' ausliest. Entsprechend die <literal>$GROSSBUCHSTABEN</literal> mit eigenen Werten ersetzen: <programlisting>
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Mail::IMAPClient;
+my $imap = Mail::IMAPClient->new(
+  Server   => '$SERVER',
+  User     => '$USER',
+  Password => '$PASS',
+  Ssl      => 1,
+  Uid      => 1,
+);
+
+$imap->select("INBOX.Eingangsrechnung")
+  or die "Select  error: ", $imap->LastError, "\n";
+
+# get the flags for every message in my 'Eingangsrechner' folder
+my $flaghash = $imap->flags( scalar( $imap->search("ALL") ) );
+
+# pump through sorted hash keys to print results:
+for my $k (keys %$flaghash) {
+    # print: Message 1: \Flag1, \Flag2, \Flag3
+    print "Message $k:\t", join( ", ", @{$flaghash->{$k}} ), "\n";
+}
+</programlisting></note>
+<note>
+Eine beispielhafte Konfiguration im YAML-Format für das Feld 'Daten' im Hintergrund-Job könnte bspw. so aussehen.
+Enthalten sind alle aktuell bekannten Parameter mit entsprechenden sinnvollen Standardwerten, bis auf die Werte der IMAP-Flags (s.a. vorherige Notiz), sodass die Konfiguration als einfachen Start zum Experimentieren direkt kopiert werden kann:
             <programlisting>
 record_type: ap_transaction
 folder: INBOX/Eingangsrechnung
+imported_imap_flag: in_kivitendo_importiert
+not_imported_imap_flag: nicht_importiert
+process_imported_emails: zugferd
 processed_imap_flag: zugferd_verarbeitet
 not_processed_imap_flag: zugferd_geht_net
-process_imported_emails: zugferd
+skip_broken_mime_mails: 0
 hostname:  www.meine-domaene.de
 username: alpha39@meine-domaene.de
 password: supipass8
             </programlisting>
-        </para>
+        </note>
         </sect2>
         <sect2 id="Hintergrund-Job InventoryClearAll">
           <title>InventoryClearAll</title>
@@ -3024,6 +3053,191 @@ years: 1
   </sect4>
   </sect3>
 </sect2>
+      <sect2 id="Vorlagen-mersiha">
+        <title>Der Druckvorlagensatz mersiha</title>
+
+        <para>Hierbei handelt es sich um einen auf Industriekunden zugeschnitten LaTeX
+        Druckvorlagensatz auf Basis des Druckvorlagensatzes marei.</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>Die Felder in der Infobox oben rechts auf den Belegen lassen sich
+            flexibel anpassen</para>
+          </listitem>
+
+          <listitem>
+            <para>Belegtitel (Überschriften) sind linksbündig und kleiner als im
+            LaTeX KOMA-script Standard</para>
+          </listitem>
+
+          <listitem>
+            <para>Als optional markierten Positionen sind auf den Belegen als solche
+            gekennzeichnet</para>
+          </listitem>
+        </itemizedlist>
+
+        <para>Die Dokumentenklasse kiviletter.sty wird nicht modifiziert, um die
+        Wartung zu erleichtern.</para>
+
+        <simplesect>
+          <title>Struktur der Belegtypen</title>
+          <para>Der Druckvorlagensatz ist so strukturiert, dass für jeden Belegtyp in kivitendo eine zugehörige LaTeX-Quelltextdatei existiert, welche beim Drucken automatisch in ein PDF umgewandelt wird.
+          Grundsätzlich werden Doppelungen im LaTeX-Code vermieden, um die Wartung zu vereinfachen.
+          Belegtypen, die sich nur minimal voneinander unterscheiden, verweisen auf dieselbe LaTeX-Quelltextdatei, welche dann Fallunterscheidungen, z.B. für die Überschrift, enthält.
+          Eine Übersicht aller Belegtypen und zugehöriger LaTeX-Quelltextdateien liefert folgende Tabelle.
+          Dateinamen innerhalb derselben Tabellenzelle verweisen mittels symbolischer Links auf dieselbe Datei.</para>
+
+<table><title>Dateinamen der Belegtypen</title>
+  <thead>
+  <tr>
+    <th colspan="2"> Einkauf </th><th colspan="2"> Verkauf </th>
+  </tr>
+  <tr>
+    <th> Belegtyp </th><th> LaTeX Vorlage </th><th> Belegtyp </th><th> LaTeX Vorlage </th>
+  </tr>
+  </thead>
+  <tbody><tr>
+    <td> </td><td> </td><td> Pflichtenheft </td><td> requirement_spec.tex </td>
+  </tr>
+  <tr>
+    <td> Preisanfrage </td><td> request_quotation.tex </td><td> Angebot </td><td> sales_quotation.tex </td>
+  </tr>
+  <tr>
+    <td> Angebotseingang </td><td> purchase_quotation_intake.tex </td><td> Auftragseingang </td><td rowspan="2"> sales_order_intake.tex
+sales_order.tex* </td>
+  </tr>
+  <tr>
+    <td> Lieferantenauftrag </td><td> purchase_order.tex </td><td> Auftragsbestätigung </td>
+  </tr>
+  <tr>
+    <td> <literallayout>Beistelllieferschein
+Retourenlieferschein
+Einkaufslieferschein</literallayout> </td><td> <literallayout>supplier_delivery_order.tex
+rma_delivery_order.tex*
+purchase_delivery_order.tex*</literallayout> </td><td> Lieferschein </td><td> sales_delivery_order.tex </td>
+  </tr>
+  <tr>
+    <td> Einkaufsreklamation </td><td> purchase_reclamation.tex </td><td> Verkaufsreklamation </td><td> sales_reclamation.tex </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> <literallayout>Rechnung
+Anzahlungsrechnung
+Schlussrechnung
+Rechnungskopie
+Stornorechnung</literallayout> </td><td> <literallayout>invoice.tex
+invoice_for_advance_payment.tex*
+final_invoice.tex*
+invoice_copy.tex*
+storno_invoice.tex*</literallayout> </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> Proformarechnung </td><td> proforma.tex </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> Gutschrift </td><td> credit_note.tex </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> Mahnung </td><td> zahlungserinnerung.tex </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> Rechnung über Mahngebühren </td><td> zahlungserinnerung_invoice.tex </td>
+  </tr>
+  <tr>
+    <td> </td><td> </td><td> Sammelrechnung (FiBu) </td><td> statement.tex </td>
+  </tr>
+</tbody></table>
+          <para>*: symbolischer Link
+          </para>
+
+          <para>Desweiteren werden das Logo oder ein Briefbogen, die Daten im Identitätsbereich in der Fußzeile, einschließlich Kontodaten für verschiede Währungen, und Übersetzungen aller Begriffe zentral eingestellt und sind dann für alle Belege wirksam. Dies passiert in den Dateien:
+          <programlisting>deutsch.tex
+englisch.tex
+firma/chf_account.tex
+firma/euro_account.tex
+firma/usd_account.tex
+firma/ident.tex
+insettings.tex</programlisting>
+          </para>
+        </simplesect>
+        <simplesect>
+          <title>Infobox</title>
+          <para>
+            Die Infobox oben rechts auf den Belegen (auch genannt Absenderergänzung) wird über LaTeX KOMA-script Variablen befüllt.
+            Dies ist flexibler als im Druckvorlagensatz marei gestaltet.
+            In der Datei <literal>insettings.tex</literal> sind die KOMA-script Variablen <literal>info0</literal> bis <literal>info9</literal> definiert.
+            Diese erscheinen jedoch nur dann in der Infobox, wenn sie auf einen Wert ungleich eines leeren Strings gesetzt werden.
+            Das erlaubt es, in den Belegen ohne weitere Fallunterscheidungen die Variablen zu setzen.
+            Zum Verständnis hier ein Beispiel aus dem Belegtyp Rechnung, also <literal>invoice.tex</literal>:
+            <programlisting>% \setkomavar{info0}[\vorgangsbez]       {&lt;%transaction_description%&gt;}
+\setkomavar{info1}[\rechnungsdatum]    {&lt;%invdate%&gt;}
+\setkomavar{info2}[\kundennummer]      {&lt;%customernumber%&gt;}
+\setkomavar{info3}[\ihreBestellnummer] {&lt;%cusordnumber%&gt;}
+\setkomavar{info4}[\auftragsnummer]    {&lt;%ordnumber%&gt;}
+\setkomavar{info5}[\angebot{}~\nr]     {&lt;%quonumber%&gt;}
+\setkomavar{info6}[\lieferschein{}~\nr]{&lt;%donumber%&gt;}
+\setkomavar{info7}[\leistungsdatum]    {&lt;%tax_point%&gt;}
+\setkomavar{info8}[\ansprechpartner]   {&lt;%salesman_name%&gt;}
+\setkomavar{info9}[\textTelefon]       {&lt;%salesman_tel%&gt;}
+\setkomavar{info10}[\textEmail]        {&lt;%salesman_email%&gt;}
+</programlisting>
+            Dieser Kunde möchte die Vorgangsbezeichnung nicht mit ausgeben, weshalb die erste Zeile auskommentiert ist. Weiterhin ist exemplarisch der Verkäufer anstelle des Bearbeiters der Ansprechpartner. Daher wird mit <literal>&lt;%salesman_name%&gt;</literal> anstelle von <literal>&lt;%employee_name%&gt;</literal> gearbeitet. Telefon und E-Mail verhalten sich analog dazu.
+          </para>
+          <para>Weil <literal>info0</literal> bis <literal>info11</literal> in aufsteigender Reihenfolge ausgegeben werden, lässt sich über die Ziffern 0 bis 11 die Reihenfolge der Felder in der Infobox steuern.
+          Bei vielen Industriekunden benötigen bestimmte Belegtypen abweichende Informationen oder andere Übersetzungstexte in der Infobox; all dies lässt sich durch Anpassung obigen LaTeX-Codes erreichen.
+          </para>
+        </simplesect>
+        <simplesect>
+          <title>Tipps für Kundenanpassungen</title>
+          <itemizedlist>
+            <listitem>
+              <para>
+              Logo mit absoluter Positionierung als Briefbogen einfügen: In <literal>insettings.tex</literal> einfügen:
+              <programlisting>\DeclareNewLayer[page,background,hoffset=125mm,voffset=12mm,
+  contents={\includegraphics[width=75mm]{logo-mit-text}}
+]{background.first}
+\DeclareNewLayer[page,background,hoffset=20mm,voffset=4mm,
+  contents={\includegraphics[scale=0.2]{logo-klein}}
+]{background}
+\AddLayersToPageStyle{kivitendo.letter.first}{background.first}
+\AddLayersToPageStyle{kivitendo.letter}{background}</programlisting>
+              Das Logo muss in einem für LaTeX geeigneten Format vorliegen, bspw. PDF, PNG oder JPEG: <literal>logo-mit-text.pdf</literal> o.Ä.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+              Die alternierenden Farben der Zeilen in der Positionstabelle abschalten: In <literal>insettings.tex</literal> einfügen:
+              <programlisting>\SetupPricingTabular{
+  rowcolor-odd = white,
+}</programlisting>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+              Im Druckvorlagensatz mersiha bereits enthalten ist: Die standardmäßig aktive Ausgabe des Währungszeichens in der letzten Spalte der Positionstabelle abschalten: In <literal>insettings.tex</literal> einfügen:
+              <programlisting>\SetupPricingTabular{
+  pricetotal/colspec = K,
+}</programlisting>
+              Dies ist bspw. nötig, um optionale Positionen richtig auszugeben und das Währungszeichen nur alle nicht-optionalen Positionen durch eine Fallunterscheidung in Template Toolkit einzufügen.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+              In Lieferantenaufträgen zu jeder Position die Artikelnummer des Lieferanten ausgeben: In <literal>purchase_order.tex</literal> folgendes diff (mit + markierte Zeilen) einfügen:
+              <programlisting>     &lt;%foreach number%&gt;%
+       &lt;%runningnumber%&gt; &amp;%
+       &lt;%number%&gt; &amp;%
+       \textbf{&lt;%description%&gt;}%
++      &lt;%foreach make%&gt;&lt;%if make == name%&gt;\ExtraDescription{&lt;%model%&gt;}&lt;%end%&gt;&lt;%end%&gt;%
+       &lt;%if longdescription%&gt;\ExtraDescription{&lt;%longdescription%&gt;}&lt;%end longdescription%&gt;%
+       &lt;%if reqdate%&gt;\ExtraDescription{\lieferdatum: &lt;%reqdate%&gt;}&lt;%end reqdate%&gt;%
+    </programlisting>
+              Hier wird durch eine Schleife in Template Toolkit der richtige Wert extrahiert.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </simplesect>
+      </sect2>
+
       <sect2 id="Vorlagen-RB">
         <title>Der Druckvorlagensatz RB</title>
 

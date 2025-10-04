@@ -198,7 +198,7 @@ sub _save {
 
   my @errors = $self->{cv}->validate;
   if (@errors) {
-    flash('error', @errors);
+    flash('error', $_) for @errors;
     $self->_pre_render();
     $self->render(
       'customer_vendor/form',
@@ -1170,26 +1170,7 @@ sub _pre_render {
 
   $self->{all_taxzones} = SL::DB::Manager::TaxZone->get_all_sorted();
 
-  if ( $::instance_conf->get_vertreter() ) {
-    $query =
-      'SELECT id
-       FROM business
-       WHERE salesman';
-    my $business_ids = [
-      map(
-        { $_->{id}; }
-        selectall_hashref_query($::form, $dbh, $query)
-      )
-    ];
-
-    if ( $business_ids->[0] ) {
-      $self->{all_salesman_customers} = SL::DB::Manager::Customer->get_all(query => [business_id => $business_ids]);
-    } else {
-      $self->{all_salesman_customers} = [];
-    }
-  } else {
-    $self->{all_salesmen} = SL::DB::Manager::Employee->get_all(query => [ or => [ id => $self->{cv}->salesman_id,  deleted => 0 ] ]);
-  }
+  $self->{all_salesmen} = SL::DB::Manager::Employee->get_all(query => [ or => [ id => $self->{cv}->salesman_id,  deleted => 0 ] ]);
 
   $self->{all_payment_terms} = SL::DB::Manager::PaymentTerm->get_all_sorted(where => [ or => [ id       => $self->{cv}->payment_id,
                                                                                                obsolete => 0 ] ]);

@@ -13,12 +13,6 @@ our %EXPORT_TAGS     = (
   IMPORT => \@EXPORT_IMPORT,
 );
 
-use SL::DB::BankAccount;
-use SL::DB::GenericTranslation;
-use SL::DB::Chart;
-use SL::DB::Tax;
-use SL::DB::TaxKey;
-use SL::DB::RecordTemplate;
 use SL::Helper::ISO3166;
 use SL::Helper::ISO4217;
 use SL::Helper::UNECERecommendation20;
@@ -26,8 +20,7 @@ use SL::VATIDNr;
 use SL::ZUGFeRD qw(:PROFILES);
 use SL::Locale::String qw(t8);
 
-use SL::Controller::ZUGFeRD;
-
+use Algorithm::CheckDigits ();
 use Carp;
 use Encode qw(encode);
 use List::MoreUtils qw(any pairwise);
@@ -226,7 +219,11 @@ sub _line_item {
   $params{xml}->endTag;
 
   $params{xml}->startTag("ram:SpecifiedTradeProduct");
-  $params{xml}->dataElement("ram:SellerAssignedID", _u8($params{item}->part->partnumber));
+  if ($params{item}->part->ean) {
+    $params{xml}->dataElement("ram:SellerAssignedID", _u8($params{item}->part->ean), schemeID => '0160');
+  } else {
+    $params{xml}->dataElement("ram:SellerAssignedID", _u8($params{item}->part->partnumber));
+  }
   $params{xml}->dataElement("ram:Name",             _u8($params{item}->description));
   $params{xml}->dataElement("ram:Description",      _u8($params{item}->longdescription_as_stripped_html))
     if $params{item}->longdescription_as_stripped_html;
@@ -429,7 +426,7 @@ sub _payment_terms {
     #       <ram:ApplicableTradePaymentDiscountTerms>
     $params{xml}->startTag("ram:ApplicableTradePaymentDiscountTerms");
     $params{xml}->dataElement("ram:BasisPeriodMeasure", $self->payment_terms->terms_skonto, unitCode => "DAY");
-    $params{xml}->dataElement("ram:BasisAmount",        _r2($payment_terms_vars{amounts}->{invtotal}), currencyID => $currency_id);
+    $params{xml}->dataElement("ram:BasisAmount",        _r2($payment_terms_vars{amounts}->{invtotal}));
     $params{xml}->dataElement("ram:CalculationPercent", _r2($self->payment_terms->percent_skonto * 100));
     $params{xml}->endTag;
     #       </ram:ApplicableTradePaymentDiscountTerms>
@@ -505,6 +502,7 @@ sub _exchanged_document {
     $params{xml}->dataElement("ram:LanguageID", uc($1));
   }
 
+  require SL::DB::GenericTranslation;
   my $std_notes = SL::DB::Manager::GenericTranslation->get_all(
     where => [
       translation_type => 'ZUGFeRD/notes',
@@ -553,7 +551,16 @@ sub _seller_trade_party {
 
   #       <ram:SellerTradeParty>
   $params{xml}->startTag("ram:SellerTradeParty");
-  $params{xml}->dataElement("ram:ID",   _u8($self->customer->c_vendor_id)) if ($self->customer->c_vendor_id // '') ne '';
+  # 0088 = GLN, 0060 = D-U-N-S, only one ID is allowed
+  if ($self->customer->c_vendor_id) {
+    $params{xml}->dataElement("ram:ID", _u8($self->customer->c_vendor_id));
+  } elsif($::instance_conf->get_gln) {
+    $params{xml}->dataElement("ram:ID", _u8($::instance_conf->get_gln), schemeID => '0088');
+  } elsif($::instance_conf->get_duns) {
+    $params{xml}->dataElement("ram:ID", _u8($::instance_conf->get_duns), schemeID => '0060');
+  } else {
+    # no sensible default yet
+  }
   $params{xml}->dataElement("ram:Name", _u8($::instance_conf->get_company));
 
   #         <ram:DefinedTradeContact>
@@ -597,7 +604,11 @@ sub _buyer_trade_party {
 
   #       <ram:BuyerTradeParty>
   $params{xml}->startTag("ram:BuyerTradeParty");
-  $params{xml}->dataElement("ram:ID",   _u8($self->customer->customernumber));
+  if ($self->customer->gln) {
+    $params{xml}->dataElement("ram:ID", _u8($self->customer->gln), schemeID => '0088');
+  } else {
+    $params{xml}->dataElement("ram:ID", _u8($self->customer->customernumber));
+  }
   $params{xml}->dataElement("ram:Name", _u8($self->customer->name));
 
   _buyer_contact_information($self, %params, contact => $self->contact) if ($self->cp_id);
@@ -625,7 +636,20 @@ sub _applicable_header_trade_agreement {
   #     <ram:ApplicableHeaderTradeAgreement>
   $params{xml}->startTag("ram:ApplicableHeaderTradeAgreement");
 
-  $params{xml}->dataElement("ram:BuyerReference", _u8($self->customer->c_vendor_routing_id)) if $self->customer->c_vendor_routing_id;
+  # BuyerReference must always be given in XRechnung v3.0.2 BT-10.
+  # Factur-X doesn't really say anything about it and only has it as optional in the schema.
+  # Technically this means that the Factur-X:conformant profile doesn't have to include it, but validators seem to be overzealous here.
+  # To be on the safe side put a fallback in there for conformant profiles, but be strict about it in XRechnung compliant profiles.
+  if ($standards_ids{ $self->{_zugferd}->{profile} } =~ /compliant/) {
+    if (!defined $self->customer->c_vendor_routing_id) {
+      die t8("Can not create an EN16931 compliant ZUGFeRD export without a routing id (Leitweg ID)");
+    } else {
+      $params{xml}->dataElement("ram:BuyerReference", _u8($self->customer->c_vendor_routing_id));
+    }
+  } else {
+    my $buyer_reference = $self->customer->c_vendor_routing_id || $self->cusordnumber || $self->customer->ustid || '';
+    $params{xml}->dataElement("ram:BuyerReference", _u8($buyer_reference));
+  }
 
   _seller_trade_party($self, %params);
   _buyer_trade_party($self, %params);
@@ -732,6 +756,7 @@ sub _validate_data {
     }
 
   } else {
+    require SL::DB::Manager::BankAccount;
     my $bank_accounts     = SL::DB::Manager::BankAccount->get_all;
     $result{bank_account} = scalar(@{ $bank_accounts }) == 1 ? $bank_accounts->[0] : first { $_->use_for_zugferd } @{ $bank_accounts };
 
@@ -749,6 +774,23 @@ sub _validate_data {
   if (_is_profile($self, PROFILE_XRECHNUNG())) {
     if (!$self->customer->c_vendor_routing_id) {
       SL::X::ZUGFeRDValidation->throw(message => $prefix . $::locale->text('The value \'our routing id at customer\' must be set in the customer\'s master data for profile #1.', 'XRechnung 2.0'));
+    }
+  }
+
+  #
+  # GS1 GTIN/EAN/GLN/ILN and ISBN-13 all use the same check digits
+  #
+  if ($self->customer->gln && !Algorithm::CheckDigits::CheckDigits('ean')->is_valid($self->customer->gln)) {
+      SL::X::ZUGFeRDValidation->throw(message => $prefix . $::locale->text('Customer GLN check digit mismatch. #1 does not seem to be a valid GLN', $self->customer->gln));
+  }
+
+  if ($::instance_conf->get_gln && !Algorithm::CheckDigits::CheckDigits('ean')->is_valid($::instance_conf->get_gln)) {
+      SL::X::ZUGFeRDValidation->throw(message => $prefix . $::locale->text('Client config GLN check digit mismatch. #1 does not seem to be a valid GLN.', $::instance_conf->get_gln));
+  }
+
+  for my $item (@{ $self->items_sorted }) {
+    if ($item->part->ean && !Algorithm::CheckDigits::CheckDigits('ean')->is_valid($item->part->ean)) {
+        SL::X::ZUGFeRDValidation->throw(message => $prefix . $::locale->text('EAN check digit mismatch for part #1. #2 does not seem to be a valid EAN.', $item->part->displayable_name, $item->part->ean));
     }
   }
 
@@ -828,7 +870,7 @@ sub import_zugferd_data {
     die t8("Cannot process this invoice: neither VAT ID nor tax ID present.");
   }
 
-  my $vendor = SL::Controller::ZUGFeRD::find_vendor($metadata{'ustid'}, $metadata{'taxnumber'});
+  my $vendor = SL::ZUGFeRD::find_vendor($metadata{'ustid'}, $metadata{'taxnumber'});
 
   die t8("Vendor with VAT ID (#1) and/or tax ID (#2) not found. Please check if the vendor " .
           "#3 exists and whether it has the correct tax ID/VAT ID." ,
@@ -866,12 +908,15 @@ sub import_zugferd_data {
     name => $metadata{'currency'},
     );
 
+  require SL::DB::Chart;
   my $default_ap_amount_chart = SL::DB::Manager::Chart->find_by(
     id => $::instance_conf->get_expense_accno_id
   );
   # Fallback if there's no default AP amount chart configured
   $default_ap_amount_chart ||= SL::DB::Manager::Chart->find_by(charttype => 'A');
 
+  require SL::DB::Tax;
+  require SL::DB::TaxKey;
   my $active_taxkey = $default_ap_amount_chart->get_active_taxkey;
   my $taxes = SL::DB::Manager::Tax->get_all(
     where   => [ chart_categories => {
@@ -883,6 +928,7 @@ sub import_zugferd_data {
     "No tax found for chart #1", $default_ap_amount_chart->displayable_name
   ) unless scalar @{$taxes};
 
+  require SL::DB::RecordTemplate;
   my %template_params;
   my $template_ap = SL::DB::Manager::RecordTemplate->get_first(where => [vendor_id => $vendor->id]);
   if ($template_ap) {

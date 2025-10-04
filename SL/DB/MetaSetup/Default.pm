@@ -86,6 +86,7 @@ __PACKAGE__->meta->columns(
   email_attachment_part_files_checked       => { type => 'boolean', default => 'true' },
   email_attachment_record_files_checked     => { type => 'boolean', default => 'true' },
   email_attachment_vc_files_checked         => { type => 'boolean', default => 'true' },
+  email_default_create_new_record_checked   => { type => 'boolean', default => 'true' },
   email_journal                             => { type => 'integer', default => 2 },
   email_sender_dunning                      => { type => 'text', default => '' },
   email_sender_invoice                      => { type => 'text', default => '' },
@@ -117,6 +118,7 @@ __PACKAGE__->meta->columns(
   fxloss_accno_id                           => { type => 'integer' },
   gl_add_doc                                => { type => 'boolean', default => 'false', not_null => 1 },
   gl_changeable                             => { type => 'integer', default => 2, not_null => 1 },
+  gln                                       => { type => 'text' },
   global_bcc                                => { type => 'text', default => '' },
   id                                        => { type => 'serial', not_null => 1 },
   income_accno_id                           => { type => 'integer' },
@@ -158,6 +160,7 @@ __PACKAGE__->meta->columns(
   pqinumber                                 => { type => 'text' },
   precision                                 => { type => 'numeric', default => '0.01', not_null => 1, precision => 15, scale => 5 },
   print_interpolate_variables_in_positions  => { type => 'boolean', default => 'true', not_null => 1 },
+  produce_assembly_allow_empty_items        => { type => 'boolean', default => 'false' },
   produce_assembly_same_warehouse           => { type => 'boolean', default => 'true' },
   produce_assembly_transfer_service         => { type => 'boolean', default => 'false' },
   profit_carried_forward_chart_id           => { type => 'integer' },
@@ -234,7 +237,6 @@ __PACKAGE__->meta->columns(
   vendor_ustid_taxnummer_unique             => { type => 'boolean', default => 'false' },
   vendornumber                              => { type => 'text' },
   version                                   => { type => 'varchar', length => 8 },
-  vertreter                                 => { type => 'boolean', default => 'false' },
   warehouse_id                              => { type => 'integer' },
   warehouse_id_ignore_onhand                => { type => 'integer' },
   warn_no_delivery_order_for_invoice        => { type => 'boolean', default => 'false' },
@@ -247,6 +249,7 @@ __PACKAGE__->meta->columns(
   weightunit                                => { type => 'varchar', length => 5 },
   workflow_po_ap_chart_id                   => { type => 'integer' },
   yearend_method                            => { type => 'text', default => 'default', not_null => 1 },
+  zugferd_ap_transaction_use_totals         => { type => 'boolean', default => 'false', not_null => 1 },
 );
 
 __PACKAGE__->meta->primary_key_columns([ 'id' ]);

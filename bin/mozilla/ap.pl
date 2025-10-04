@@ -223,8 +223,8 @@ sub load_record_template {
 
   flash('info', $::locale->text("The record template '#1' has been loaded.", $template->template_name));
   flash('info', $::locale->text("Payment bookings disallowed. After the booking this record may be " .
-                                "suggested with the amount of '#1' or otherwise has to be choosen manually." .
-                                " No automatic payment booking will be done to chart '#2'.",
+                                "suggested with the amount of '#1' or otherwise has to be choosen manually. " .
+                                "No automatic payment booking will be done to chart '#2'.",
                                   $form_defaults->{paid_1_suggestion},
                                   $form_defaults->{AP_paid_1_suggestion},
                                 )) if $::form->{no_payment_bookings};
@@ -1199,7 +1199,8 @@ sub ap_transactions {
   push @hidden_variables, "l_subtotal", qw(open closed vendor invnumber ordnumber transaction_description notes intnotes project_id
                                            transdatefrom transdateto duedatefrom duedateto datepaidfrom datepaidto
                                            parts_partnumber parts_description department_id taxzone_id payment_id
-                                           fulltext insertdatefrom insertdateto);
+                                           fulltext insertdatefrom insertdateto
+                                           parts_serialnumber);
 
   my $href = build_std_url('action=ap_transactions', grep { $form->{$_} } @hidden_variables);
 
@@ -1270,6 +1271,7 @@ foreach my $name (qw(id transdate duedate invnumber ordnumber name datepaid empl
   push @options, $locale->text('Part Description')        . " : $form->{parts_description}"              if $form->{parts_description};
   push @options, $locale->text('Part Number')             . " : $form->{parts_partnumber}"               if $form->{parts_partnumber};
   push @options, $locale->text('Full Text')               . " : $form->{fulltext}"                       if ($form->{fulltext});
+  push @options, $locale->text('Serial Number')           . " : $form->{parts_serialnumber}"             if ($form->{parts_serialnumber});
   push @options, $locale->text('From')                                      . " " . $locale->date(\%myconfig, $form->{transdatefrom},  1) if ($form->{transdatefrom});
   push @options, $locale->text('Bis')                                       . " " . $locale->date(\%myconfig, $form->{transdateto},    1) if ($form->{transdateto});
   push @options, $locale->text('Due Date')    . " " . $locale->text('from') . " " . $locale->date(\%myconfig, $form->{duedatefrom},    1) if ($form->{duedatefrom});

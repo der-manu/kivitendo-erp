@@ -43,7 +43,10 @@ our %exclude_deps = (
 our @files = glob('*');
 find(sub { push(@files, $File::Find::name) if $_ =~ /\.pm$/;}, 'SL');
 find(sub { push(@files, $File::Find::name) if $_ =~ /\.pl$/;}, qw(bin/mozilla sql/Pg-upgrade2));
-find(sub { push(@files, $File::Find::name) if $_ =~ /\.html$/;}, qw(templates/webpages));
+find(sub { push(@files, $File::Find::name) if $_ =~ /\.html$/;}, qw(templates/design40_webpages));
+
+our @javascript_files;
+find(sub { push(@javascript_files, $File::Find::name) if $_ =~ /\.js$/;}, 'js');
 
 sub have_pkg {
     my ($pkg) = @_;

@@ -108,6 +108,11 @@
         <td class="long-desc">[% LxERP.t8('Preselect all documents saved for the current record as a mail attachment.') %]</td>
       </tr>
       <tr>
+        <th>[% LxERP.t8('Send printout of record: prefer creating a new printout') %]</th>
+        <td>[% L.yes_no_tag('defaults.email_default_create_new_record_checked', SELF.defaults.email_default_create_new_record_checked) %]</td>
+        <td class="long-desc">[% LxERP.t8('By default, create and send a new record as a mail attachment.') %]</td>
+      </tr>
+      <tr>
         <th class="caption" colspan="3">[% LxERP.t8("Storage Backends") %]</th>
       </tr>
       <tr>
@@ -254,11 +259,6 @@
     <caption>[% 'Customer Master Data' | $T8 %]</caption>
     <colgroup> <col class="wi-mediumsmall"><col class="wi-small"><col class="wi-wide"> </colgroup>
     <tbody>
-      <tr>
-        <th>[% LxERP.t8('Representative') %]</th>
-        <td>[% L.yes_no_tag('defaults.vertreter', SELF.defaults.vertreter) %]</td>
-        <td class="long-desc">[% LxERP.t8('Representative for Customer') %]</td>
-      </tr>
       <tr>
         <th>[% LxERP.t8('Normalize Customer / Vendor names') %]</th>
         <td>[% L.yes_no_tag('defaults.normalize_vc_names', SELF.defaults.normalize_vc_names) %]</td>
@@ -606,6 +606,12 @@
       <th>[% 'Force a layout style' | $T8 %]</th>
       <td>[% L.select_tag('defaults.layout_style', [['', LxERP.t8('Automatic')], ['desktop', LxERP.t8('desktop version')]], default=SELF.defaults.layout_style, with_empty=0) %]</td>
       <td class="long-desc">[% 'The layout style normally is choosen by the user agent string the browser sends. Here you can force the desktop or mobile version. Users can override this setting in their user preferences.' | $T8 %]</td>
+    </tr>
+    <tr><th class="caption">[% 'ZUGFeRD Import' | $T8 %]</th></tr>
+    <tr>
+      <th align="right">[% LxERP.t8("Import total amounts into ap transaction instead of positions") %]</th>
+      <td>[% L.yes_no_tag("defaults.zugferd_ap_transaction_use_totals", SELF.defaults.zugferd_ap_transaction_use_totals) %]</td>
+      <td class="long-desc">[% LxERP.t8("If an imported invoice contains any discounts, the position method will not work reliably.") %]</td>
     </tr>
   </tbody>
 </table>

@@ -536,8 +536,8 @@ sub read_user {
   my %menustyle_map = ( xml => 'new', v4 => 'v3' );
   $user_data{menustyle} = $menustyle_map{lc($user_data{menustyle} || '')} || $user_data{menustyle};
 
-  # The 'Win2000.css' stylesheet has been removed.
-  $user_data{stylesheet} = 'kivitendo.css' if ($user_data{stylesheet} || '') =~ m/win2000/i;
+  # The 'kivitendo.css', 'lx-office-erp.css', 'Mobile.css' and 'Win2000.css' stylesheets have been removed.
+  $user_data{stylesheet} = 'design40.css' if ($user_data{stylesheet} || '') =~ m/win2000|kivitendo\.css|lx-office-erp\.css|Mobile\.css/i;
 
   # Set default language if selected language does not exist (anymore).
   $user_data{countrycode} = $::lx_office_conf{system}->{language} unless $user_data{countrycode} && -d "locale/$user_data{countrycode}";
@@ -559,26 +559,34 @@ sub get_user_id {
 
 sub delete_user {
   my $self  = shift;
-  my $login = shift;
+  my $user  = shift;
 
-  my $dbh   = $self->dbconnect;
-  my $id    = $self->get_user_id($login);
+  die "Need user object" unless ref $user eq 'SL::DB::AuthUser';
 
-  if (!$id) {
-    $dbh->rollback;
-    return;
+  my @clients = @{ $user->clients || [] };
+
+  # get user metadata (email, name, etc)
+  my $user_config_values_ref = $user->config_values();
+
+
+  # Flag corresponding entries in 'employee' as deleted.
+  # and restore the most important user data in employee
+  # TODO try and catch the whole transaction {user->delete; update employee} {exception}
+  # more or less impossible, because we access at least 2 different databases
+  # at least user->delete is the last action and it is safe to run the updates on employees
+  # more than once
+  foreach my $client (@clients) {
+    my $dbh = $client->dbconnect(AutoCommit => 1) || next;
+    $dbh->do(qq|UPDATE employee SET deleted = TRUE, name = ?, deleted_email = ?,
+                deleted_tel = ?, deleted_fax = ?, deleted_signature = ? WHERE login = ?|,undef,
+              $user_config_values_ref->{name}, $user_config_values_ref->{email},
+              $user_config_values_ref->{tel}, $user_config_values_ref->{fax},
+              $user_config_values_ref->{signature}, $user->login);
+    $dbh->do(qq|DELETE FROM user_preferences WHERE login= ?|, undef, $user->login);
+
+    $dbh->disconnect;
   }
-
-  $dbh->begin_work;
-
-  do_query($::form, $dbh, qq|DELETE FROM auth.user_group WHERE user_id = ?|, $id);
-  do_query($::form, $dbh, qq|DELETE FROM auth.user_config WHERE user_id = ?|, $id);
-  do_query($::form, $dbh, qq|DELETE FROM auth.user WHERE id = ?|, $id);
-
-  # TODO: SL::Auth::delete_user
-  # do_query($::form, $u_dbh, qq|UPDATE employee SET deleted = 't' WHERE login = ?|, $login) if $u_dbh && $user_db_exists;
-
-  $dbh->commit;
+  die ('The user could not be deleted.') unless ($user->delete);
 }
 
 # --------------------------------------

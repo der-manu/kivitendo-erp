@@ -5,10 +5,44 @@
 202x-xx-xx - Release x.x.x
 
 Größere neue Features:
+- Die Stilvorlagen kivitendo.css und lx-office-erp.css wurden komplett entfernt.
 
 Mittelgroße neue Features:
 
 Kleinere neue Features und Detailverbesserungen:
+
+- Alle PDFs die sich im Reiter Dokumente befinden können beim E-Mail-Versand
+  zu einem PDF im Anhang zusammengefasst werden.
+
+- Lieferscheine: Drucken mit Positionsauswahl:
+  Im Druckdialog lässt sich eine Positionsauswahl einblenden, mit der die zu
+  druckenden Positionen ausgewählt werden können.
+
+- neue Optionen für den E-Mail-Import, sowie Verbesserund der Doku für
+  das Setzen der IMAP-Flags, s.a. Kapitel 2.9.2 in der Doku.
+
+- Gesamt- und Zwischensummen werden im Mahnungsbericht angezeigt.
+
+- Rechnungen mit Nicht-Euro-Währung nicht für einen SEPA-Einzug oder
+  eine SEPA-Überweisung zur Auswahl anbieten.
+
+- Lieferplan um das Feld Status u. Vorgangsbezeichnung des Auftrags und Mikrofilm
+  erweitert und nach Vorgangsbezeichnis filterbar gemacht.
+
+- Beim E-Mail-Versand von Belegen wird abhängig von der Mandanteneinstellung
+  "Belegausdruck mitschicken: bevorzuge Erzeugung eines neuen Belegs"
+  standardmäßig ein neuer Belegausdruck erstellt und verschickt (zuvor
+  wurde standardmäßig der zuletzt erstellte Belegausdruck verwendet).
+  
+- Im Artikelstamm bei den Warenbeständen den Wert der Ware korrekt berechnen
+  wenn ein Preisfaktor gesetzt ist.
+
+- Beim Lagerbuchungsbericht Zu- und Abnahme der Menge mit + und - zusätzlich
+  visualisiert.
+
+- Beim Produzieren von Erzeugnissen darf man auch Erzeugnisbestandteile mit der
+  Menge 0 verbauen. Konfigurierbar in der Mandantenkonfiguration, standardmäßig
+  deaktiviert.
 
 Bugfixes (Tracker: https://www.kivitendo.de/redmine) / Github-Issues /
 Änderungshistorie laut Github  (https://github.com/kivitendo/kivitendo-erp/):

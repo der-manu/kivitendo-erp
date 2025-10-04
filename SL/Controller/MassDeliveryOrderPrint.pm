@@ -154,10 +154,10 @@ sub action_mass_mdo_print {
     1;
   } or do {
     my $errstr = $@;
-    my $htmlstr = $errstr;
-    $htmlstr =~ s/\n/<br>/g;
-    $self->js->flash('error', t8('Document generating failed. Please check Templates an LateX !'));
-    $self->js->flash_detail('error', $htmlstr);
+    $self->js->flash('error',
+      t8('Document generating failed. Please check Templates an LateX !'),
+      $errstr
+    );
   };
   $self->js->render;
   $::lxdebug->leave_sub();

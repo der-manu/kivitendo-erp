@@ -5,8 +5,6 @@
 
 <h1>[% title %]</h1>
 
-[% INCLUDE 'common/flash.html' %]
-
 <form method="post" name="search" action="dn.pl" id="form">
 
 <div class="wrapper">
@@ -113,6 +111,11 @@
       </td>
     </tr>
     [%- END %]
+    <tr>
+      <th>[% 'Subtotal' | $T8 %]</th>
+      <td><input type="checkbox" value="1" name="l_subtotal">
+      </td>
+    </tr>
   </tbody>
 </table>
 

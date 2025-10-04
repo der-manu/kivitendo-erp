@@ -11,7 +11,7 @@
 
 [% IF SELF.cv.name %]
 <h2 class="record-title" title="[% IF SELF.is_vendor() %][% 'Vendor Name' | $T8 %][% ELSE %][% 'Customer Name' | $T8 %][% END %]">
-  [% SELF.cv.name %] <small>[% IF SELF.cv.city; IF SELF.cv.name !=""; ", "; END ; SELF.cv.city ; END; %]</small>
+  [% HTML.escape(SELF.cv.name) %] <small>[% IF SELF.cv.city; IF SELF.cv.name !=""; ", "; END ; HTML.escape(SELF.cv.city) ; END; %]</small>
 </h2>
 [% END %]
 
@@ -113,11 +113,18 @@
             <a href="[% IF SELF.cv.homepage.match('http[s]?:\/\/') %][% ELSE %]https://[% END %][% HTML.escape(SELF.cv.homepage) %]" title="[% 'Open in new window' | $T8 %]" target="_blank">[% 'Homepage' | $T8 %]</a>[% ELSE %][% 'Homepage' | $T8 %][% END %]</th>
       <td>[% L.input_tag_trim('cv.homepage', SELF.cv.homepage, class='wi-lightwide', title = LxERP.t8('Example: http://kivitendo.de')) %]</td>
     </tr>
-
     [% IF ( SELF.is_customer() ) %]
+    <tr>
+      <th><label for="cv_postal_invoice">[% 'Postal Invoice' | $T8 %]</label></th>
+      <td>[% L.checkbox_tag('cv.postal_invoice', checked = SELF.cv.postal_invoice, for_submit=1) %]</td>
+    </tr>
     <tr>
       <th>[% 'Email of the invoice recipient' | $T8 %]</th>
       <td>[% P.input_email_tag('cv.invoice_mail', SELF.cv.invoice_mail, class='wi-lightwide') %]</td>
+    </tr>
+    <tr>
+      <th>[% 'Email of the dunning recipient' | $T8 %]</th>
+      <td>[% P.input_email_tag('cv.dunning_mail', SELF.cv.dunning_mail, class='wi-lightwide') %]</td>
     </tr>
     <tr>
       <th>[% 'Email of the delivery order recipient' | $T8 %]</th>
@@ -132,24 +139,11 @@
   <caption>[% IF ( SELF.is_vendor() ) %][% 'Vendor' | $T8 %][% ELSE %][% 'Customer' | $T8 %][% END %] [% 'Info & Status' | $T8 %]</caption>
   <colgroup> <col class="wi-small"><col class="wi-lightwide"> </colgroup>
   <tbody>
-    [% IF ( 0 && INSTANCE_CONF.get_vertreter ) %]
-      <tr>
-        <th>[% IF SELF.is_vendor() %] [% 'Type of Vendor' | $T8 %] [% ELSE %] [% 'Type of Customer' | $T8 %] [% END %]</th>
-        <td>[% L.select_tag('cv.business_id', SELF.all_business, value_key = 'id', title_key = 'description', default = SELF.cv.business_id, with_empty=1, class='wi-lightwide') %]</td>
-      </tr>
-      <tr>
-        <th>[% 'Representative' | $T8 %]</th>
-        <td>[% L.select_tag('cv.salesman_id', SELF.all_salesman_customers, default=SELF.cv.salesman_id, value_key='id', title_key='name', with_empty=1, class='wi-lightwide') %]</td>
-      </tr>
-    [% END %]
-    <!-- PENDENT: zweimal das gleiche Feld aber nicht wirklich angezeigt? Anschauen!!!!!! -->
-    [% IF ( !INSTANCE_CONF.get_vertreter ) %]
-      <tr>
-        <th>[% IF ( SELF.is_vendor() ) %][% 'Type of Vendor' | $T8 %][% ELSE %][% 'Type of Customer' | $T8 %][% END %]</th>
-        <td>[% L.select_tag('cv.business_id', SELF.all_business, default = SELF.cv.business_id, value_key = 'id', title_key = 'description', with_empty=1, class='wi-lightwide') %]</td>
-      </tr>
-    [% END %]
-    [% IF ( SELF.is_customer() && !INSTANCE_CONF.get_vertreter ) %]
+    <tr>
+      <th>[% IF ( SELF.is_vendor() ) %][% 'Type of Vendor' | $T8 %][% ELSE %][% 'Type of Customer' | $T8 %][% END %]</th>
+      <td>[% L.select_tag('cv.business_id', SELF.all_business, default = SELF.cv.business_id, value_key = 'id', title_key = 'description', with_empty=1, class='wi-lightwide') %]</td>
+    </tr>
+    [% IF ( SELF.is_customer() ) %]
       <th>[% 'Salesman' | $T8 %]</th>
       <td>
         [% L.select_tag('cv.salesman_id', SELF.all_salesmen, default = SELF.cv.salesman_id, value_key = 'id', title_key = 'safe_name', with_empty = 1, class='wi-lightwide') %]
@@ -223,7 +217,10 @@
       </tr>
       <tr>
         <th>[% 'Our routing id at customer' | $T8 %]</th>
-        <td>[% L.input_tag_trim('cv.c_vendor_routing_id', SELF.cv.c_vendor_routing_id, size = 20) %]</td>
+        <td>
+          [% L.input_tag_trim('cv.c_vendor_routing_id', SELF.cv.c_vendor_routing_id, size = 20) %]
+          [% P.context_help_tag(LxERP.t8('Mandatory for exports with XRechnung profile. Note: Despite being optional for Factur-X profile exports, some validators expect it to be present, so the UStID will be used as a fallback.')) %]
+        </td>
       </tr>
     [% END %]
 <!-- </tbody> -->

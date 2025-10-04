@@ -301,6 +301,9 @@ sub action_print {
   my $groupitems  = $::form->{print_options}->{groupitems};
   my $printer_id  = $::form->{print_options}->{printer_id};
 
+  my $only_selected_item_positions = $::form->{print_options}->{only_selected_item_positions};
+  my $selected_item_positions      = $::form->{print_options}->{selected_item_positions};
+
   # only pdf and opendocument by now
   if (none { $format eq $_ } qw(pdf opendocument opendocument_pdf)) {
     flash_later('error', t8('Format \'#1\' is not supported yet/anymore.', $format));
@@ -328,8 +331,10 @@ sub action_print {
       formname   => $formname,
       language   => $self->order->language,
       printer_id => $printer_id,
-      groupitems => $groupitems
-    });
+      groupitems => $groupitems,
+      selected_item_positions      => $selected_item_positions,
+      only_selected_item_positions => $only_selected_item_positions,
+  });
   if (scalar @errors) {
     flash_later('error', t8('Generating the document failed: #1', $errors[0]));
     return $self->js->redirect_to($redirect_url)->render;
@@ -711,6 +716,29 @@ sub action_unit_changed {
   );
   $self->js_redisplay_line_values;
   $self->js->render();
+}
+
+# update item input row when a part ist picked
+sub action_update_item_input_row {
+  my ($self) = @_;
+
+  delete $::form->{add_item}->{$_} for qw(create_part_type sellprice_as_number discount_as_percent);
+
+  my $form_attr = $::form->{add_item};
+
+  return unless $form_attr->{parts_id};
+
+  my $record       = $self->order;
+  my $item         = SL::DB::DeliveryOrderItem->new(%$form_attr);
+  $item->qty(1) if !$item->qty;
+  $item->unit($item->part->unit);
+
+  my $texts = SL::Model::Record->get_part_texts($item->part, $record->language_id);
+
+  $self->js
+    ->val     ('#add_item_unit',                $item->unit)
+    ->val     ('#add_item_description',         $texts->{description})
+    ->render;
 }
 
 # add an item row for a new item entered in the input row
@@ -1098,17 +1126,22 @@ sub action_update_row_from_master_data {
   foreach my $item_id (@{ $::form->{item_ids} }) {
     my $idx   = first_index { $_ eq $item_id } @{ $::form->{orderitem_ids} };
     my $item  = $self->order->items_sorted->[$idx];
-    my $texts = get_part_texts($item->part, $self->order->language_id);
+    my $texts = SL::Model::Record->get_part_texts($item->part, $self->order->language_id);
 
     $item->description($texts->{description});
     $item->longdescription($texts->{longdescription});
 
-    my ($price_src, undef) = SL::Model::Record->get_best_price_and_discount_source($self->order, $item, ignore_given => 1);
+    my ($price_src, $discount_src) = SL::Model::Record->get_best_price_and_discount_source($self->order, $item, ignore_given => 1);
     $item->sellprice($price_src->price);
     $item->active_price_source($price_src);
+    $item->discount($discount_src->discount);
+    $item->active_discount_source($discount_src);
 
     $self->js
-      ->run('kivi.DeliveryOrder.update_sellprice', $item_id, $item->sellprice_as_number)
+      ->run('kivi.DeliveryOrder.set_price_and_source',    $item_id,
+            $price_src   ->source, $item->sellprice)
+      ->run('kivi.DeliveryOrder.set_discount_and_source', $item_id,
+            $discount_src->source, $item->discount)
       ->html('.row_entry:has(#item_' . $item_id . ') [name = "partnumber"] a', $item->part->partnumber)
       ->val ('.row_entry:has(#item_' . $item_id . ') [name = "order.orderitems[].description"]', $item->description)
       ->val ('.row_entry:has(#item_' . $item_id . ') [name = "order.orderitems[].longdescription"]', $item->longdescription);
@@ -1350,7 +1383,7 @@ sub action_transfer_stock_default {
           $transfer_request->{warehouse_id}  = $default_warehouse_id_ignore_onhand;
         }
       }
-      delete %parts_errors{$part_id};
+      delete $parts_errors{$part_id};
     }
   }
 
@@ -1419,6 +1452,26 @@ sub action_undo_transfers {
   );
 
   $self->redirect_to(@redirect_params);
+}
+
+sub action_render_item_selection {
+  my ($self) = @_;
+
+  my $items = $self->order->items_sorted;
+
+  if (@$items && $self->search_cvpartnumber) {
+    $self->get_item_cvpartnumber($_) for @{$items};
+  }
+
+  $self->render(
+    'delivery_order/tabs/_print_options_item_selection',
+    { layout => 0 },
+    title             => t8('Please select positions to print'),
+    items             => $items,
+    show_cvpartnumber => $self->search_cvpartnumber,
+    cv                => $self->cv,
+    name_prefix       => 'print_options.',
+  );
 }
 
 sub js_load_second_row {
@@ -1741,7 +1794,7 @@ sub make_item {
 
       # assign attributes
       $obj->$_($line->{$_}) for qw(bin_id warehouse_id chargenumber qty unit);
-      $obj->bestbefore_as_date($line->{bestfbefore})
+      $obj->bestbefore_as_date($line->{bestbefore})
         if $line->{bestbefore} && $::instance_conf->get_show_bestbefore;
       push @save, $obj if $obj->qty;
     }
@@ -1752,7 +1805,7 @@ sub make_item {
   $item->assign_attributes(%$attr);
 
   if ($is_new) {
-    my $texts = get_part_texts($item->part, $record->language_id);
+    my $texts = SL::Model::Record->get_part_texts($item->part, $record->language_id);
     $item->longdescription($texts->{longdescription})              if !defined $attr->{longdescription};
     $item->project_id($record->globalproject_id)                   if !defined $attr->{project_id};
     $item->lastcost($record->is_sales ? $item->part->lastcost : 0) if !defined $attr->{lastcost_as_number};
@@ -1778,37 +1831,31 @@ sub new_item {
 
   $item->assign_attributes(%$attr);
 
-  my $part = SL::DB::Part->new(id => $attr->{parts_id})->load;
-  $item->qty(1.0)          if !$item->qty;
-  $item->unit($part->unit) if !$item->unit;
+  $item->qty(1.0)                if !$item->qty;
+  $item->unit($item->part->unit) if !$item->unit;
 
   my ($price_src, $discount_src) = SL::Model::Record->get_best_price_and_discount_source($record, $item, ignore_given => 0);
 
+  my $texts = SL::Model::Record->get_part_texts($item->part, $record->language_id);
+
   my %new_attr;
-  $new_attr{part}                   = $part;
-  $new_attr{description}            = $part->description     if ! $item->description;
-  $new_attr{qty}                    = 1.0                    if ! $item->qty;
-  $new_attr{price_factor_id}        = $part->price_factor_id if ! $item->price_factor_id;
+  $new_attr{description}            = $texts->{description}        if ! $item->description;
+  $new_attr{qty}                    = 1.0                          if ! $item->qty;
+  $new_attr{price_factor_id}        = $item->part->price_factor_id if ! $item->price_factor_id;
   $new_attr{sellprice}              = $price_src->price;
   $new_attr{discount}               = $discount_src->discount;
   $new_attr{active_price_source}    = $price_src;
   $new_attr{active_discount_source} = $discount_src;
-  $new_attr{longdescription}        = $part->notes           if ! defined $attr->{longdescription};
+  $new_attr{longdescription}        = $texts->{longdescription}    if ! defined $attr->{longdescription};
   $new_attr{project_id}             = $record->globalproject_id;
-  $new_attr{lastcost}               = $record->is_sales ? $part->lastcost : 0;
+  $new_attr{lastcost}               = $record->is_sales ? $item->part->lastcost : 0;
 
   # add_custom_variables adds cvars to an orderitem with no cvars for saving, but
   # they cannot be retrieved via custom_variables until the order/orderitem is
   # saved. Adding empty custom_variables to new orderitem here solves this problem.
   $new_attr{custom_variables} = [];
 
-  my $texts = get_part_texts(
-    $part, $record->language_id,
-    description => $new_attr{description},
-    longdescription => $new_attr{longdescription}
-  );
-
-  $item->assign_attributes(%new_attr, %{ $texts });
+  $item->assign_attributes(%new_attr);
 
   return $item;
 }
@@ -2254,6 +2301,13 @@ sub generate_pdf {
   $print_form->{media}       = 'file'                             if $print_form->{media} eq 'screen';
 
   $order->language($params->{language});
+
+  # Keep items which should be printed.
+  if ($params->{only_selected_item_positions}) {
+    my %keep = map { $_ => 1 } @{ $params->{selected_item_positions} || [] };
+    $order->orderitems([ grep { $keep{$_->position} } @{ $order->orderitems } ]);
+  }
+
   $order->flatten_to_form($print_form, format_amounts => 1);
 
   my $template_ext;
@@ -2360,30 +2414,6 @@ sub get_item_cvpartnumber {
       @{$item->part->customerprices};
     $item->{cvpartnumber} = $cps[0]->customer_partnumber if scalar @cps;
   }
-}
-
-sub get_part_texts {
-  my ($part_or_id, $language_or_id, %defaults) = @_;
-
-  my $part        = ref($part_or_id)     ? $part_or_id         : SL::DB::Part->load_cached($part_or_id);
-  my $language_id = ref($language_or_id) ? $language_or_id->id : $language_or_id;
-  my $texts       = {
-    description     => $defaults{description}     // $part->description,
-    longdescription => $defaults{longdescription} // $part->notes,
-  };
-
-  return $texts unless $language_id;
-
-  my $translation = SL::DB::Manager::Translation->get_first(
-    where => [
-      parts_id    => $part->id,
-      language_id => $language_id,
-    ]);
-
-  $texts->{description}     = $translation->translation     if $translation && $translation->translation;
-  $texts->{longdescription} = $translation->longdescription if $translation && $translation->longdescription;
-
-  return $texts;
 }
 
 sub nr_key {

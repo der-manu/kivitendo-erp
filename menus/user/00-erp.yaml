@@ -1500,6 +1500,13 @@
   params:
     action: TaskServer/show
 - parent: system
+  id: system_secrets
+  name: Secrets
+  order: 2800
+  params:
+    action: SimpleSystemSetting/list
+    type: secret
+- parent: system
   id: system_audit_control
   name: Audit Control
   order: 2800
@@ -1631,6 +1638,13 @@
   order: 450
   params:
     action: Test/ckeditor_test_page
+- parent: develop
+  id: flash_test
+  name: Flash-Test
+  access: developer
+  order: 460
+  params:
+    action: Flash/test_page
 - parent: develop
   id: js_tests
   name: JS Tests

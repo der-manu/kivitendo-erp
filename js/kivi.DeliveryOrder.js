@@ -102,6 +102,9 @@ namespace('kivi.DeliveryOrder', function(ns) {
     if (warn_on_duplicates && !ns.check_duplicate_parts(kivi.t8("Do you really want to print?"))) return;
     if (warn_on_reqdate    && !ns.check_valid_reqdate())   return;
 
+    $('#print_item_selection').html('');
+    $('#print_show_items').show();
+
     kivi.popup_dialog({
       id: 'print_options',
       dialog: {
@@ -110,6 +113,18 @@ namespace('kivi.DeliveryOrder', function(ns) {
         height: 300
       }
     });
+  };
+
+  ns.print_dialog_show_item_selection = function() {
+    $('#print_options').dialog("option", "height", 600);
+
+    $('#print_item_selection').html(kivi.t8('Loading...'));
+    $('#print_item_selection').show();
+    $('#print_show_items').hide();
+
+    let data = $('#order_form').serializeArray();
+    data.push({ name: 'action', value: 'DeliveryOrder/render_item_selection' });
+    $.post("controller.pl", data, (html) => { $('#print_item_selection').html(html); });
   };
 
   ns.stock_in_out_dialog_row_by_id = function(id) {
@@ -585,6 +600,15 @@ namespace('kivi.DeliveryOrder', function(ns) {
     return insert_before_item_id;
   };
 
+  ns.update_item_input_row = function() {
+    if (!ns.check_cv()) return;
+
+    var data = $('#order_form').serializeArray();
+    data.push({ name: 'action', value: 'DeliveryOrder/update_item_input_row' });
+
+    $.post("controller.pl", data, kivi.eval_json_result);
+  };
+
   ns.add_item = function() {
     if ($('#add_item_parts_id').val() === '') return;
     if (!ns.check_cv()) return;
@@ -647,16 +671,22 @@ namespace('kivi.DeliveryOrder', function(ns) {
     kivi.SalesPurchase.edit_longdescription_with_params(params);
   };
 
-  ns.price_chooser_item_row = function(clicked) {
-    if (!ns.check_cv()) return;
-    var row         = $(clicked).parents("tbody").first();
-    var item_id_dom = $(row).find('[name="orderitem_ids[+]"]');
+  ns.set_price_and_source = function(item_id, source, price) {
+    var row        = $('#item_' + item_id).parents("tbody").first();
 
-    var data = $('#order_form').serializeArray();
-    data.push({ name: 'action',  value: 'DeliveryOrder/price_popup' },
-              { name: 'item_id', value: item_id_dom.val()   });
+    var source_elt = $(row).find('[name="order.orderitems[].active_price_source"]');
+    source_elt.val(source);
+    var price_elt = $(row).find('[name="order.orderitems[].sellprice"]');
+    price_elt.val(price);
+  };
 
-    $.post("controller.pl", data, kivi.eval_json_result);
+  ns.set_discount_and_source = function(item_id, source, discount) {
+    var row        = $('#item_' + item_id).parents("tbody").first();
+
+    var source_elt = $(row).find('[name="order.orderitems[].active_discount_source"]');
+    source_elt.val(source);
+    var discount_elt = $(row).find('[name="order.orderitems[].discount"]');
+    discount_elt.val(discount);
   };
 
   ns.update_row_from_master_data = function(clicked) {
@@ -817,8 +847,9 @@ $(function() {
   $('#order_transdate_as_date').change(kivi.DeliveryOrder.update_exchangerate);
   $('#order_exchangerate_as_null_number').change(kivi.DeliveryOrder.exchangerate_changed);
 
-  $('#add_item_parts_id').on('set_item:PartPicker', function(e,o) { $('#add_item_description').val(o.description) });
-  $('#add_item_parts_id').on('set_item:PartPicker', function(e,o) { $('#add_item_unit').val(o.unit) });
+  $('#add_item_parts_id').on('set_item:PartPicker', function() {
+    kivi.DeliveryOrder.update_item_input_row();
+  });
 
   $('.add_item_input').keydown(function(event) {
     if (event.keyCode == 13) {
